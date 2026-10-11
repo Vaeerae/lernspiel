@@ -69,7 +69,8 @@ const Story = (() => {
   const KEY = 'lernspiel-story';
   const state = JSON.parse(localStorage.getItem(KEY) || '{"unlocked":0,"stars":{}}');
   const save = () => localStorage.setItem(KEY, JSON.stringify(state));
-  const gameById = (id) => [...Reading.games, ...Numbers.games].find(g => g.id === id);
+  // Im Modus «nur Grossbuchstaben» wird «Gross & klein» durch «Laute hören» ersetzt
+  const gameById = (id) => [...Reading.games, ...Numbers.games].find(g => g.id === (id === 'grossklein' && UI.settings.caps ? 'laut' : id));
 
   // ---------- Karte ----------
   function map(onBack) {
@@ -107,7 +108,8 @@ const Story = (() => {
         el('button', { class: 'btn big', onclick: () => play(i, onBack) }, '▶ Los geht\'s!'),
         el('button', { class: 'btn secondary', onclick: () => map(onBack) }, '🗺️ Karte')));
     root.append(box);
-    setTimeout(() => Speech.speak(c.intro), 300);
+    Speech.preloadText(c.intro); Speech.preloadText(c.success);
+    if (UI.settings.autoRead) setTimeout(() => Speech.speak(c.intro), 200);
   }
 
   // ---------- Aufgabenrunde ----------
@@ -133,7 +135,8 @@ const Story = (() => {
               el('button', { class: 'btn big secondary', onclick: () => Speech.speak(c.success) }, '🔊 Vorlesen'),
               last ? el('button', { class: 'btn big', onclick: () => map(onBack) }, '🏆 Zur Karte')
                 : el('button', { class: 'btn big', onclick: () => intro(i + 1, onBack) }, '▶ Weiter'))));
-          setTimeout(() => Speech.speak(c.success), 600);
+          if (CHAPTERS[i + 1]) Speech.preloadText(CHAPTERS[i + 1].intro);
+          if (UI.settings.autoRead) setTimeout(() => Speech.speak(c.success), 500);
         } else {
           const txt = 'Oh, das war noch nicht genug. Luna sagt: "Kein Problem, versuch es noch einmal. Ich glaube an dich!"';
           root.append(el('div', { class: 'result', style: 'max-width:820px' },
@@ -143,7 +146,7 @@ const Story = (() => {
               el('button', { class: 'btn big', onclick: () => play(i, onBack) }, '🔁 Noch einmal'),
               el('button', { class: 'btn big secondary', onclick: () => Reading.LEARN_ORDER && (game.id === 'anlaut' || game.id === 'laut' || game.id === 'grossklein' || game.id === 'bauen' || game.id === 'lesen' || game.id === 'wortfinden') ? Reading.learn(() => intro(i, onBack)) : Numbers.learn(() => intro(i, onBack)) }, '📚 Zuerst üben'),
               el('button', { class: 'btn secondary', onclick: () => map(onBack) }, '🗺️ Karte'))));
-          setTimeout(() => Speech.speak(txt), 300);
+          if (UI.settings.autoRead) setTimeout(() => Speech.speak(txt), 300);
         }
       },
     });

@@ -82,6 +82,13 @@ const UI = (() => {
     })();
   }
 
+  // ---------- Einstellungen ----------
+  const SKEY = 'lernspiel-settings';
+  const settings = Object.assign({ caps: false, autoRead: true }, JSON.parse(localStorage.getItem(SKEY) || '{}'));
+  function setSetting(k, v) { settings[k] = v; localStorage.setItem(SKEY, JSON.stringify(settings)); }
+  /** Wort gemäss Schrift-Einstellung: nur Grossbuchstaben oder gemischt */
+  const fmt = (w) => settings.caps ? w.toUpperCase() : w;
+
   // ---------- Fortschritt ----------
   const KEY = 'lernspiel-progress';
   const progress = JSON.parse(localStorage.getItem(KEY) || '{"stars":0,"games":{}}');
@@ -119,7 +126,7 @@ const UI = (() => {
           setTimeout(next, delay);
         },
       });
-      setTimeout(() => task.speakPrompt && task.speakPrompt(), 300);
+      if (settings.autoRead) setTimeout(() => task.speakPrompt && task.speakPrompt(), 250);
     }
 
     function finish() {
@@ -179,5 +186,5 @@ const UI = (() => {
   }
 
   return { $, el, screen, rnd, rndInt, pick, shuffle, sample, soundOk, soundBad, soundWin, flash, praise, confetti,
-    progress, save, gameState, updateStarbar, runRound, choiceTask, ROUND_LEN };
+    progress, save, gameState, updateStarbar, runRound, choiceTask, ROUND_LEN, settings, setSetting, fmt };
 })();

@@ -33,6 +33,7 @@
         tile('📖', 'Lesen üben', 'Buchstaben, Laute, Wörter', 'read', readingHub),
         tile('🔢', 'Zahlen üben', 'Zählen, Zerlegen, Rechnen', 'num', numbersHub),
         tile('✏️', 'Schreiben', 'Buchstaben & Zahlen nachspuren', 'write', () => { setView('Schreiben', home); Writing.trace('A', home); }),
+        tile('⚙️', 'Einstellungen', UI.settings.caps ? 'Nur Grossbuchstaben' : 'Gross und klein', '', settingsScreen),
         tile('👨‍👩‍👧', 'Eltern', 'Laute aufnehmen, Fortschritt', '', parents)));
   }
 
@@ -56,7 +57,7 @@
       el('div', { class: 'menu-head' }, el('h1', {}, '📖 Lesen'), el('p', {}, 'Zuerst die Buchstaben kennenlernen, dann spielen.')),
       el('div', { class: 'menu' },
         tile('🅰️', 'Buchstaben lernen', 'Jeder Laut einzeln erklärt', 'read', () => { setView('Buchstaben lernen', readingHub); Reading.learn(readingHub); }),
-        ...Reading.games.map(g => gameTile(g, 'read', readingHub))));
+        ...Reading.games.filter(g => !(g.hidden && g.hidden())).map(g => gameTile(g, 'read', readingHub))));
   }
 
   // ---------- Zahlen ----------
@@ -71,15 +72,38 @@
         ...Numbers.games.map(g => gameTile(g, 'num', numbersHub))));
   }
 
+  // ---------- Einstellungen ----------
+  function settingsScreen() {
+    setView('Einstellungen', home);
+    const root = UI.screen();
+    root.innerHTML = '';
+    const opt = (label, sub, active, onclick) => el('button', { class: 'tile' + (active ? ' active' : ''), style: active ? 'outline:5px solid var(--primary)' : '', onclick },
+      el('div', { class: 'emoji' }, label), el('div', { class: 'sub' }, sub));
+    const render = () => {
+      root.innerHTML = '';
+      root.append(el('div', { style: 'margin:auto;width:100%;max-width:1000px' },
+        el('div', { class: 'menu-head' }, el('h1', {}, '⚙️ Einstellungen')),
+        el('h2', { style: 'text-align:center;margin:10px 0' }, 'Schrift'),
+        el('div', { class: 'menu' },
+          opt('A B C', 'Nur Grossbuchstaben – wie zu Beginn der 1. Klasse', UI.settings.caps, () => { UI.setSetting('caps', true); render(); }),
+          opt('A a B b', 'Gross- und Kleinbuchstaben gemischt', !UI.settings.caps, () => { UI.setSetting('caps', false); render(); })),
+        el('h2', { style: 'text-align:center;margin:24px 0 10px' }, 'Vorlesen'),
+        el('div', { class: 'menu' },
+          opt('🔊', 'Geschichte und Aufgaben automatisch vorlesen', UI.settings.autoRead, () => { UI.setSetting('autoRead', true); render(); }),
+          opt('👆', 'Nur vorlesen, wenn der Lautsprecher angetippt wird', !UI.settings.autoRead, () => { UI.setSetting('autoRead', false); render(); }))));
+    };
+    render();
+  }
+
   // ---------- Eltern-Bereich ----------
   function parents() {
     setView('Eltern', home);
     const root = UI.screen();
     root.innerHTML = '';
     const info = el('p', { style: 'color:var(--muted);max-width:800px' },
-      'Die Sprachsynthese des Tablets kann einzelne Laute (zum Beispiel "b" oder "t") nur ungefähr sprechen. ',
-      'Hier können Sie jeden Laut selbst aufnehmen – so, wie er beim Lesen gesprochen wird: "mmm", nicht "em". ',
-      'Aufnahmen werden nur auf diesem Gerät gespeichert und haben Vorrang vor der Sprachsynthese.');
+      'Alle Laute sind bereits als Sprachaufnahmen (Piper TTS, Stimme «Thorsten») in der App enthalten. ',
+      'Wer möchte, kann einzelne Laute hier mit der eigenen Stimme aufnehmen – so, wie sie beim Lesen gesprochen werden: «mmm», nicht «em». ',
+      'Eigene Aufnahmen werden nur auf diesem Gerät gespeichert und haben Vorrang.');
     const keys = [...Reading.LEARN_ORDER];
     const list = el('div', { class: 'options narrow' });
     let recorder = null, recKey = null;
@@ -140,6 +164,7 @@
   // Start
   UI.updateStarbar();
   home();
+  Speech.preloadBasics();
 
   // Offline-Fähigkeit (nur im Browser; in der Android-App nicht nötig)
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !(window.Native && Native.isNative)) {

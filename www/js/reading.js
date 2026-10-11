@@ -1,6 +1,7 @@
 /* Lesen & Buchstaben: Lernmodus + Spiele */
 const Reading = (() => {
-  const { el, pick, shuffle, sample, choiceTask } = UI;
+  const { el, pick, shuffle, sample, choiceTask, fmt } = UI;
+  const caps = () => UI.settings.caps;
   const W = DATA.words;
 
   // Reihenfolge wie in vielen Erstlese-Lehrgängen: zuerst Vokale und Dauerlaute
@@ -36,12 +37,12 @@ const Reading = (() => {
       const ws = wordsFor(L);
       root.innerHTML = '';
       const letterBox = el('div', { class: 'prompt', style: 'cursor:pointer', onclick: () => Speech.laut(L) },
-        el('span', { class: 'big' }, `${L} ${lower}`),
+        el('span', { class: 'big' }, caps() ? L : `${L} ${lower}`),
         el('button', { class: 'speak-btn', onclick: (e) => { e.stopPropagation(); Speech.lautMitBeispiel(L, ws[0]?.w); } }, '🔊'));
       const wordRow = el('div', { class: 'options' }, ...ws.map(x =>
         el('button', { class: 'opt pic', onclick: () => Speech.buchstabieren(x.w) },
           el('div', {}, el('div', {}, x.e), el('div', { style: 'font-size:28px;letter-spacing:2px' },
-            el('span', { style: 'color:var(--read)' }, x.w.slice(0, L.length)), x.w.slice(L.length))))));
+            el('span', { style: 'color:var(--read)' }, fmt(x.w.slice(0, L.length))), fmt(x.w.slice(L.length)))))));
       const nav = el('div', { class: 'toolbar' },
         el('button', { class: 'btn big secondary', onclick: () => { idx--; show(); } }, '◀'),
         el('button', { class: 'btn big', style: 'background:var(--write)', onclick: () => Writing.trace(L, () => learn(onBack)) }, '✏️ Nachspuren'),
@@ -64,7 +65,7 @@ const Reading = (() => {
       const others = sample(pool.filter(x => x.first !== target.first), n - 1);
       const opts = shuffle([target, ...others]).map(x => ({ value: x.w, node: x.e }));
       return choiceTask({
-        promptNodes: [el('span', { class: 'big' }, target.first + (level >= 2 ? ' ' + target.first.toLowerCase() : ''))],
+        promptNodes: [el('span', { class: 'big' }, target.first + (level >= 2 && !caps() ? ' ' + target.first.toLowerCase() : ''))],
         speakFn: async () => { await Speech.speak('Welches Bild beginnt mit'); await Speech.laut(target.first); },
         options: opts, correct: target.w, optClass: 'pic',
         onCorrectSpeak: () => Speech.speak(`${target.w}. ${UI.praise()}`),
@@ -79,7 +80,7 @@ const Reading = (() => {
       const letters = level === 1 ? ['M', 'A', 'L', 'O', 'S', 'I', 'N', 'E', 'T', 'U'] : level === 2 ? DATA.anlautLetters : [...DATA.alphabet, ...DATA.umlaute];
       const target = pick(letters);
       const others = sample(letters.filter(l => l !== target), level === 1 ? 2 : 3);
-      const asLower = level === 3;
+      const asLower = level === 3 && !caps();
       const opts = shuffle([target, ...others]).map(l => ({ value: l, label: asLower ? l.toLowerCase() : l }));
       const ex = DATA.exampleFor[target];
       return choiceTask({
@@ -100,7 +101,7 @@ const Reading = (() => {
       const others = sample(pool.filter(x => x.w !== target.w && x.e !== target.e), level === 1 ? 2 : 3);
       const opts = shuffle([target, ...others]).map(x => ({ value: x.w, node: x.e }));
       return choiceTask({
-        promptNodes: [el('span', { class: 'big', style: 'font-size:84px' }, target.w)],
+        promptNodes: [el('span', { class: 'big', style: 'font-size:84px' }, fmt(target.w))],
         speakFn: () => Speech.buchstabieren(target.w),
         options: opts, correct: target.w, optClass: 'pic',
         onCorrectSpeak: () => Speech.speak(`${target.w}. ${UI.praise()}`),
@@ -118,7 +119,7 @@ const Reading = (() => {
       let distract = level === 3 ? pool.filter(x => x.w !== target.w && x.first === target.first) : [];
       if (distract.length < 2) distract = pool.filter(x => x.w !== target.w);
       const others = sample(distract, 2);
-      const opts = shuffle([target, ...others]).map(x => ({ value: x.w, label: x.w }));
+      const opts = shuffle([target, ...others]).map(x => ({ value: x.w, label: fmt(x.w) }));
       return choiceTask({
         promptNodes: [el('span', { class: 'pic' }, target.e)],
         speakText: `Welches Wort heisst ${target.w}?`,
@@ -130,7 +131,7 @@ const Reading = (() => {
 
   // ---------- Spiel 5: Gross- und Kleinbuchstaben ----------
   const grossKlein = {
-    id: 'grossklein', title: 'Gross & klein', emoji: '🅰️', maxLevel: 2,
+    id: 'grossklein', title: 'Gross & klein', emoji: '🅰️', maxLevel: 2, hidden: () => caps(),
     makeTask(level) {
       const letters = level === 1 ? ['M', 'A', 'L', 'O', 'S', 'I', 'N', 'E', 'T', 'U', 'B', 'D', 'F', 'H'] : DATA.alphabet;
       const target = pick(letters);
@@ -151,9 +152,9 @@ const Reading = (() => {
     makeTask(level) {
       const pool = W.filter(x => x.s === level && x.w.length <= 7);
       const target = pick(pool);
-      const parts = Speech.zerlegen(target.w).map((p, i) => i === 0 ? p[0] + p.slice(1).toLowerCase() : p.toLowerCase());
+      const parts = Speech.zerlegen(target.w).map((p, i) => caps() ? p : (i === 0 ? p[0] + p.slice(1).toLowerCase() : p.toLowerCase()));
       // Bei Stufe 1 keine Ablenker, danach 1–2 zusätzliche Buchstaben
-      const extra = level === 1 ? [] : sample(DATA.alphabet.map(l => l.toLowerCase()).filter(l => !parts.includes(l)), level - 1);
+      const extra = level === 1 ? [] : sample(DATA.alphabet.map(l => caps() ? l : l.toLowerCase()).filter(l => !parts.includes(l)), level - 1);
       const tiles = shuffle([...parts, ...extra]);
       return {
         speakPrompt: () => Speech.buchstabieren(target.w),

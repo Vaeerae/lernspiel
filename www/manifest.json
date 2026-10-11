@@ -1,0 +1,11 @@
+{
+  "name": "Lernspiel – Lesen, Schreiben, Zahlen",
+  "short_name": "Lernspiel",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#fdf6e3",
+  "theme_color": "#4f7cff",
+  "lang": "de-CH",
+  "icons": [{ "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

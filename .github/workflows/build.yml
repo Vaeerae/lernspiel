@@ -1,0 +1,62 @@
+name: Build APK & Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  apk:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npx cap sync android
+      - name: Build debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk lernspiel.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lernspiel-apk
+          path: lernspiel.apk
+      - name: Publish release "latest"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Lernspiel – aktuelle Version
+          body: |
+            Android-APK (Debug-Signatur) zum direkten Installieren auf dem Tablet.
+            Download: lernspiel.apk → auf dem Tablet öffnen → "Installation aus unbekannten Quellen" erlauben.
+          files: lernspiel.apk
+          prerelease: false
+
+  pages:
+    name: Web-Version (GitHub Pages)
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+      - id: deployment
+        uses: actions/deploy-pages@v4

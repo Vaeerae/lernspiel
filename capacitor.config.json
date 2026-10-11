@@ -1,0 +1,7 @@
+{
+  "appId": "ch.lernspiel.einhornwelt",
+  "appName": "Lernspiel",
+  "webDir": "www",
+  "android": { "allowMixedContent": false, "backgroundColor": "#fdf6e3" },
+  "server": { "androidScheme": "https" }
+}
